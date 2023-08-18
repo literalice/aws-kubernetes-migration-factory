@@ -16,7 +16,6 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 package source_impl
 
 import (
@@ -33,12 +32,14 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"slices"
 
 	yaml "github.com/ghodss/yaml"
 	helm "helm.sh/helm/v3/pkg/release"
 	app "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v1"
 	v1 "k8s.io/api/core/v1"
+	networking "k8s.io/api/networking/v1"
 	podsecuritypolicy "k8s.io/api/policy/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
 	storage "k8s.io/api/storage/v1"
@@ -235,7 +236,7 @@ func Resource_trim_fields(resource_type string, resource *resource.Resources, re
 		var resource_list []batchv1.Job
 		for _, item := range resource.JobList {
 			Trim_Item(&item.ObjectMeta)
-			delete(item.Spec.Selector.MatchLabels,"controller-uid")
+			delete(item.Spec.Selector.MatchLabels, "controller-uid")
 			delete(item.Spec.Template.Labels, "controller-uid")
 			resource_list = append(resource_list, item)
 		}
@@ -317,8 +318,8 @@ func Generate_job_config(src *cluster.Cluster, resource *resource.Resources) {
 					fmt.Printf("No kubernetes Jobs found: %v\n", err)
 				} else {
 					fmt.Printf("Could not read kubernetes Jobs using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					os.Exit(1)
+				}
 			}
 
 			// append list of services in this namespace to glabal services list
@@ -339,20 +340,20 @@ func Generate_cronjob_config(src *cluster.Cluster, resource *resource.Resources)
 					return
 				} else {
 					fmt.Printf("Could not read kubernetes CronJobs using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					os.Exit(1)
+				}
 			}
 
-            if src.Migrate_Images == "Yes" || src.Migrate_Images == "yes" {
-                    for i, item := range cronjob.Items {
-                            for j, image_spec := range item.Spec.JobTemplate.Spec.Template.Spec.Containers {
-                                    image_name := image_spec.Image
-                                    updated_image := MIGRATE_IMAGES.Validate(image_name, src.Registry_Names)
-                                    if updated_image != "" {
-                                            cronjob.Items[i].Spec.JobTemplate.Spec.Template.Spec.Containers[j].Image = updated_image
-                                    }
-                            }
-                	}
+			if src.Migrate_Images == "Yes" || src.Migrate_Images == "yes" {
+				for i, item := range cronjob.Items {
+					for j, image_spec := range item.Spec.JobTemplate.Spec.Template.Spec.Containers {
+						image_name := image_spec.Image
+						updated_image := MIGRATE_IMAGES.Validate(image_name, src.Registry_Names)
+						if updated_image != "" {
+							cronjob.Items[i].Spec.JobTemplate.Spec.Template.Spec.Containers[j].Image = updated_image
+						}
+					}
+				}
 			}
 
 			// append list of services in this namespace to glabal services list
@@ -372,9 +373,9 @@ func Generate_secret_config(src *cluster.Cluster, resource *resource.Resources) 
 					fmt.Printf("No kubernetes Secrets found: %v\n", err)
 					return
 				} else {
-				fmt.Printf("Could not read kubernetes Secrets using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					fmt.Printf("Could not read kubernetes Secrets using cluster client: %v\n", err)
+					os.Exit(1)
+				}
 			}
 
 			// Remove default secret from each namespace
@@ -402,9 +403,9 @@ func Generate_configmap_config(src *cluster.Cluster, resource *resource.Resource
 					fmt.Printf("No kubernetes ConfigMaps found: %v\n", err)
 					return
 				} else {
-				fmt.Printf("Could not read kubernetes ConfigMaps using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					fmt.Printf("Could not read kubernetes ConfigMaps using cluster client: %v\n", err)
+					os.Exit(1)
+				}
 			}
 
 			// append list of services in this namespace to global services list
@@ -423,9 +424,9 @@ func Generate_mutatingwebhook_config(src *cluster.Cluster, resource *resource.Re
 				fmt.Printf("No kubernetes MutatingWebhookConfiguration found: %v\n", err)
 				return
 			} else {
-			fmt.Printf("Could not read kubernetes MutatingWebhookConfiguration using cluster client: %v\n", err)
-			os.Exit(1)
-		}
+				fmt.Printf("Could not read kubernetes MutatingWebhookConfiguration using cluster client: %v\n", err)
+				os.Exit(1)
+			}
 		}
 
 		// append list of services in this namespace to glabal services list
@@ -443,9 +444,9 @@ func Generate_validatingwebhook_config(src *cluster.Cluster, resource *resource.
 				fmt.Printf("No kubernetes MutatingWebhookConfiguration found: %v\n", err)
 				return
 			} else {
-			fmt.Printf("Could not read kubernetes MutatingWebhookConfiguration using cluster client: %v\n", err)
-			os.Exit(1)
-		}
+				fmt.Printf("Could not read kubernetes MutatingWebhookConfiguration using cluster client: %v\n", err)
+				os.Exit(1)
+			}
 		}
 
 		// append list of services in this namespace to glabal services list
@@ -464,9 +465,9 @@ func Generate_ingress_config(src *cluster.Cluster, resource *resource.Resources)
 					fmt.Printf("No kubernetes Ingress found: %v\n", err)
 					return
 				} else {
-				fmt.Printf("Could not read kubernetes Ingresses using cluster client: %v\n", err)
-				//os.Exit(1)
-			}
+					fmt.Printf("Could not read kubernetes Ingresses using cluster client: %v\n", err)
+					//os.Exit(1)
+				}
 			}
 
 			// append list of services in this namespace to global services list
@@ -486,9 +487,9 @@ func Generate_storage_class_config(src *cluster.Cluster, resource *resource.Reso
 				fmt.Printf("No kubernetes Storage Classes found: %v\n", err)
 				return
 			} else {
-			fmt.Printf("Could not read kubernetes Storage Classes using cluster client: %v\n", err)
-			os.Exit(1)
-		}
+				fmt.Printf("Could not read kubernetes Storage Classes using cluster client: %v\n", err)
+				os.Exit(1)
+			}
 		}
 
 		// append list of services in this namespace to global services list
@@ -509,8 +510,8 @@ func Generate_pvc_config(src *cluster.Cluster, resource *resource.Resources) {
 					return
 				} else {
 					fmt.Printf("Could not read kubernetes PersistentVolumeClaims using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					os.Exit(1)
+				}
 			}
 
 			// append list of services in this namespace to glabal services list
@@ -531,21 +532,21 @@ func Generate_deployment_config(src *cluster.Cluster, resource *resource.Resourc
 					return
 				} else {
 					fmt.Printf("Could not read kubernetes Deployments using cluster client: %v\n", err)
-				os.Exit(1)
+					os.Exit(1)
 				}
 			}
-            
+
 			if src.Migrate_Images == "Yes" || src.Migrate_Images == "yes" {
-                    for i, item := range dep.Items {
-                            for j, image_spec := range item.Spec.Template.Spec.Containers {
-                                    image_name := image_spec.Image
-                                    updated_image := MIGRATE_IMAGES.Validate(image_name, src.Registry_Names)
-                                    if updated_image != "" {
-                                            dep.Items[i].Spec.Template.Spec.Containers[j].Image = updated_image
-                                    }
-                            }
-                	}
-            }
+				for i, item := range dep.Items {
+					for j, image_spec := range item.Spec.Template.Spec.Containers {
+						image_name := image_spec.Image
+						updated_image := MIGRATE_IMAGES.Validate(image_name, src.Registry_Names)
+						if updated_image != "" {
+							dep.Items[i].Spec.Template.Spec.Containers[j].Image = updated_image
+						}
+					}
+				}
+			}
 
 			// append list of services in this namespace to global services list
 			resource.Depl = append(resource.Depl, dep.Items...)
@@ -564,9 +565,9 @@ func Generate_service_config(src *cluster.Cluster, resource *resource.Resources)
 					fmt.Printf("No kubernetes SVC found: %v\n", err)
 					return
 				} else {
-				fmt.Printf("Could not read kubernetes SVC using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					fmt.Printf("Could not read kubernetes SVC using cluster client: %v\n", err)
+					os.Exit(1)
+				}
 			}
 
 			// append list of services in this namespace to global services list
@@ -586,9 +587,9 @@ func Generate_daemonset_config(src *cluster.Cluster, resource *resource.Resource
 					fmt.Printf("No kubernetes Daemonsets found: %v\n", err)
 					return
 				} else {
-				fmt.Printf("Could not read kubernetes Daemonsets using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					fmt.Printf("Could not read kubernetes Daemonsets using cluster client: %v\n", err)
+					os.Exit(1)
+				}
 			}
 
 			// append list of services in this namespace to global services list
@@ -609,9 +610,9 @@ func Generate_hpa_config(src *cluster.Cluster, resource *resource.Resources) {
 					fmt.Printf("No kubernetes hpas found: %v\n", err)
 					return
 				} else {
-				fmt.Printf("Could not read kubernetes hpas using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					fmt.Printf("Could not read kubernetes hpas using cluster client: %v\n", err)
+					os.Exit(1)
+				}
 			}
 
 			// append list of services in this namespace to glabal services list
@@ -629,9 +630,9 @@ func Generate_psp_config(src *cluster.Cluster, resource *resource.Resources) {
 				fmt.Printf("No kubernetes pod security policies found: %v\n", err)
 				return
 			} else {
-			fmt.Printf("Could not read kubernetes pod security policies using cluster client: %v\n", err)
-			os.Exit(1)
-		}
+				fmt.Printf("Could not read kubernetes pod security policies using cluster client: %v\n", err)
+				os.Exit(1)
+			}
 		}
 
 		// append list of pod security policies to glabal services list
@@ -650,8 +651,8 @@ func Generate_serviceaccount_config(src *cluster.Cluster, resource *resource.Res
 					return
 				} else {
 					fmt.Printf("Could not read kubernetes serviceaccounts using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					os.Exit(1)
+				}
 			}
 
 			// append list of service accounts in this namespace to glabal services list
@@ -671,9 +672,9 @@ func Generate_role_config(src *cluster.Cluster, resource *resource.Resources) {
 					fmt.Printf("No kubernetes Role found: %v\n", err)
 					return
 				} else {
-				fmt.Printf("Could not read kubernetes Role using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					fmt.Printf("Could not read kubernetes Role using cluster client: %v\n", err)
+					os.Exit(1)
+				}
 			}
 
 			// append list of services in this namespace to global services list
@@ -693,9 +694,9 @@ func Generate_role_binding_config(src *cluster.Cluster, resource *resource.Resou
 					fmt.Printf("No kubernetes Role Bindings found: %v\n", err)
 					return
 				} else {
-				fmt.Printf("Could not read kubernetes Role Bindings using cluster client: %v\n", err)
-				os.Exit(1)
-			}
+					fmt.Printf("Could not read kubernetes Role Bindings using cluster client: %v\n", err)
+					os.Exit(1)
+				}
 			}
 
 			// append list of services in this namespace to global services list
@@ -715,8 +716,8 @@ func Generate_cluster_role_config(src *cluster.Cluster, resource *resource.Resou
 				return
 			} else {
 				fmt.Printf("Could not read kubernetes ClusterRoles using cluster client: %v\n", err)
-			os.Exit(1)
-		}
+				os.Exit(1)
+			}
 		}
 
 		// append list of services in this namespace to global services list
@@ -736,8 +737,8 @@ func Generate_cluster_role_binding_config(src *cluster.Cluster, resource *resour
 				return
 			} else {
 				fmt.Printf("Could not read kubernetes Cluster Role Bindings using cluster client: %v\n", err)
-			os.Exit(1)
-		}
+				os.Exit(1)
+			}
 		}
 
 		// append list of services in this namespace to global services list
@@ -751,10 +752,11 @@ func Generate_namespace_list(src *cluster.Cluster, resource *resource.Resources)
 		// Intialize namespace list variable
 		resource.Nsl = new(v1.NamespaceList)
 		fmt.Println("Namespace list entered by user")
+		ignorens := []string{"kube-system", "kube-public", "kube-node-lease", "gke-gmp-system", "gke-managed-filestorecsi", "gmp-public"}
 
 		//Loop through the list of namespace name entered. by used and get the namesapce object from cluster
 		for _, element := range src.GetNamespaces() {
-			if element == "kube-system" || element == "kube-public" || element == "kube-node-lease" {
+			if slices.Contains(ignorens, element) {
 				continue
 			}
 			ns, err := src.GetClientset().CoreV1().Namespaces().Get(context.TODO(), element, metav1.GetOptions{})
@@ -785,7 +787,7 @@ func Generate_namespace_list(src *cluster.Cluster, resource *resource.Resources)
 
 }
 
-//Scan source kubernetes cluster and generate the Helm charts
+// Scan source kubernetes cluster and generate the Helm charts
 func Generate_helm_charts(src *cluster.Cluster, resource *resource.Resources) {
 	labelSelector := fmt.Sprintf("owner=helm")
 	listOptions := metav1.ListOptions{
@@ -802,9 +804,9 @@ func Generate_helm_charts(src *cluster.Cluster, resource *resource.Resources) {
 				fmt.Printf("No kubernetes Secrets found: %v\n", err)
 				return
 			} else {
-			fmt.Printf("Could not read kubernetes Secrets using cluster client: %v\n", err)
-			os.Exit(1)
-		}
+				fmt.Printf("Could not read kubernetes Secrets using cluster client: %v\n", err)
+				os.Exit(1)
+			}
 		}
 
 		for _, secret := range secretList.Items {

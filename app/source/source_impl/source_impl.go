@@ -42,8 +42,8 @@ import (
 	podsecuritypolicy "k8s.io/api/policy/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
 	storage "k8s.io/api/storage/v1"
+	errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    networking "k8s.io/api/networking/v1"
 
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -312,9 +312,13 @@ func Generate_job_config(src *cluster.Cluster, resource *resource.Resources) {
 		// Loop through all the namespaces and get the list of services
 		for _, element := range resource.Nsl.Items {
 			job, err := src.GetClientset().BatchV1().Jobs(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
-			if err != nil {
-				fmt.Printf("Could not read kubernetes Secrets using cluster client: %v\n", err)
+			if err != nil && !errors.IsNotFound(err) {
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes Jobs found: %v\n", err)
+				} else {
+					fmt.Printf("Could not read kubernetes Jobs using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// append list of services in this namespace to glabal services list
@@ -330,8 +334,13 @@ func Generate_cronjob_config(src *cluster.Cluster, resource *resource.Resources)
 		for _, element := range resource.Nsl.Items {
 			cronjob, err := src.GetClientset().BatchV1beta1().CronJobs(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
-				fmt.Printf("Could not read kubernetes Secrets using cluster client: %v\n", err)
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes CronJobs found: %v\n", err)
+					return
+				} else {
+					fmt.Printf("Could not read kubernetes CronJobs using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
             if src.Migrate_Images == "Yes" || src.Migrate_Images == "yes" {
@@ -359,8 +368,13 @@ func Generate_secret_config(src *cluster.Cluster, resource *resource.Resources) 
 		for _, element := range resource.Nsl.Items {
 			secret, err := src.GetClientset().CoreV1().Secrets(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes Secrets found: %v\n", err)
+					return
+				} else {
 				fmt.Printf("Could not read kubernetes Secrets using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// Remove default secret from each namespace
@@ -384,8 +398,13 @@ func Generate_configmap_config(src *cluster.Cluster, resource *resource.Resource
 		for _, element := range resource.Nsl.Items {
 			configmap, err := src.GetClientset().CoreV1().ConfigMaps(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes ConfigMaps found: %v\n", err)
+					return
+				} else {
 				fmt.Printf("Could not read kubernetes ConfigMaps using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// append list of services in this namespace to global services list
@@ -400,8 +419,13 @@ func Generate_mutatingwebhook_config(src *cluster.Cluster, resource *resource.Re
 		// Loop through all the namespaces and get the list of services
 		mwc, err := src.GetClientset().AdmissionregistrationV1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
+			if errors.IsNotFound(err) {
+				fmt.Printf("No kubernetes MutatingWebhookConfiguration found: %v\n", err)
+				return
+			} else {
 			fmt.Printf("Could not read kubernetes MutatingWebhookConfiguration using cluster client: %v\n", err)
 			os.Exit(1)
+		}
 		}
 
 		// append list of services in this namespace to glabal services list
@@ -415,8 +439,13 @@ func Generate_validatingwebhook_config(src *cluster.Cluster, resource *resource.
 		// Loop through all the namespaces and get the list of services
 		vwc, err := src.GetClientset().AdmissionregistrationV1().ValidatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
+			if errors.IsNotFound(err) {
+				fmt.Printf("No kubernetes MutatingWebhookConfiguration found: %v\n", err)
+				return
+			} else {
 			fmt.Printf("Could not read kubernetes MutatingWebhookConfiguration using cluster client: %v\n", err)
 			os.Exit(1)
+		}
 		}
 
 		// append list of services in this namespace to glabal services list
@@ -431,8 +460,13 @@ func Generate_ingress_config(src *cluster.Cluster, resource *resource.Resources)
 		for _, element := range resource.Nsl.Items {
 			ingress, err := src.GetClientset().NetworkingV1().Ingresses(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes Ingress found: %v\n", err)
+					return
+				} else {
 				fmt.Printf("Could not read kubernetes Ingresses using cluster client: %v\n", err)
 				//os.Exit(1)
+			}
 			}
 
 			// append list of services in this namespace to global services list
@@ -448,8 +482,13 @@ func Generate_storage_class_config(src *cluster.Cluster, resource *resource.Reso
 		//for _, element := range resource.Nsl.Items {
 		sc, err := src.GetClientset().StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
+			if errors.IsNotFound(err) {
+				fmt.Printf("No kubernetes Storage Classes found: %v\n", err)
+				return
+			} else {
 			fmt.Printf("Could not read kubernetes Storage Classes using cluster client: %v\n", err)
 			os.Exit(1)
+		}
 		}
 
 		// append list of services in this namespace to global services list
@@ -465,8 +504,13 @@ func Generate_pvc_config(src *cluster.Cluster, resource *resource.Resources) {
 		for _, element := range resource.Nsl.Items {
 			pvc, err := src.GetClientset().CoreV1().PersistentVolumeClaims(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
-				fmt.Printf("Could not read kubernetes Storage Classes using cluster client: %v\n", err)
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes PersistentVolumeClaims found: %v\n", err)
+					return
+				} else {
+					fmt.Printf("Could not read kubernetes PersistentVolumeClaims using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// append list of services in this namespace to glabal services list
@@ -482,8 +526,13 @@ func Generate_deployment_config(src *cluster.Cluster, resource *resource.Resourc
 		for _, element := range resource.Nsl.Items {
 			dep, err := src.GetClientset().AppsV1().Deployments(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
-				fmt.Printf("Could not read kubernetes SVC using cluster client: %v\n", err)
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes Deployments found: %v\n", err)
+					return
+				} else {
+					fmt.Printf("Could not read kubernetes Deployments using cluster client: %v\n", err)
 				os.Exit(1)
+				}
 			}
             
 			if src.Migrate_Images == "Yes" || src.Migrate_Images == "yes" {
@@ -511,8 +560,13 @@ func Generate_service_config(src *cluster.Cluster, resource *resource.Resources)
 		for _, element := range resource.Nsl.Items {
 			svc, err := src.GetClientset().CoreV1().Services(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes SVC found: %v\n", err)
+					return
+				} else {
 				fmt.Printf("Could not read kubernetes SVC using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// append list of services in this namespace to global services list
@@ -528,8 +582,13 @@ func Generate_daemonset_config(src *cluster.Cluster, resource *resource.Resource
 		for _, element := range resource.Nsl.Items {
 			ds, err := src.GetClientset().AppsV1().DaemonSets(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes Daemonsets found: %v\n", err)
+					return
+				} else {
 				fmt.Printf("Could not read kubernetes Daemonsets using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// append list of services in this namespace to global services list
@@ -546,8 +605,13 @@ func Generate_hpa_config(src *cluster.Cluster, resource *resource.Resources) {
 			hpa, err := src.GetClientset().AutoscalingV1().HorizontalPodAutoscalers(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			fmt.Println()
 			if err != nil {
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes hpas found: %v\n", err)
+					return
+				} else {
 				fmt.Printf("Could not read kubernetes hpas using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// append list of services in this namespace to glabal services list
@@ -561,8 +625,13 @@ func Generate_psp_config(src *cluster.Cluster, resource *resource.Resources) {
 		// Get the list of pod security policies
 		psp, err := src.GetClientset().PolicyV1beta1().PodSecurityPolicies().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
+			if errors.IsNotFound(err) {
+				fmt.Printf("No kubernetes pod security policies found: %v\n", err)
+				return
+			} else {
 			fmt.Printf("Could not read kubernetes pod security policies using cluster client: %v\n", err)
 			os.Exit(1)
+		}
 		}
 
 		// append list of pod security policies to glabal services list
@@ -576,8 +645,13 @@ func Generate_serviceaccount_config(src *cluster.Cluster, resource *resource.Res
 		for _, element := range resource.Nsl.Items {
 			sa, err := src.GetClientset().CoreV1().ServiceAccounts(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
-				fmt.Printf("Could not read kubernetes hpas using cluster client: %v\n", err)
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes serviceaccounts found: %v\n", err)
+					return
+				} else {
+					fmt.Printf("Could not read kubernetes serviceaccounts using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// append list of service accounts in this namespace to glabal services list
@@ -593,8 +667,13 @@ func Generate_role_config(src *cluster.Cluster, resource *resource.Resources) {
 		for _, element := range resource.Nsl.Items {
 			rl, err := src.GetClientset().RbacV1().Roles(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes Role found: %v\n", err)
+					return
+				} else {
 				fmt.Printf("Could not read kubernetes Role using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// append list of services in this namespace to global services list
@@ -610,8 +689,13 @@ func Generate_role_binding_config(src *cluster.Cluster, resource *resource.Resou
 		for _, element := range resource.Nsl.Items {
 			rbl, err := src.GetClientset().RbacV1().RoleBindings(element.ObjectMeta.Name).List(context.TODO(), metav1.ListOptions{})
 			if err != nil {
+				if errors.IsNotFound(err) {
+					fmt.Printf("No kubernetes Role Bindings found: %v\n", err)
+					return
+				} else {
 				fmt.Printf("Could not read kubernetes Role Bindings using cluster client: %v\n", err)
 				os.Exit(1)
+			}
 			}
 
 			// append list of services in this namespace to global services list
@@ -626,8 +710,13 @@ func Generate_cluster_role_config(src *cluster.Cluster, resource *resource.Resou
 		// not a namespaced resource and hence no loop through all the namespaces and get the list of clusterroles
 		crl, err := src.GetClientset().RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			fmt.Printf("Could not read kubernetes Role Bindings using cluster client: %v\n", err)
+			if errors.IsNotFound(err) {
+				fmt.Printf("No kubernetes ClusterRoles found: %v\n", err)
+				return
+			} else {
+				fmt.Printf("Could not read kubernetes ClusterRoles using cluster client: %v\n", err)
 			os.Exit(1)
+		}
 		}
 
 		// append list of services in this namespace to global services list
@@ -642,8 +731,13 @@ func Generate_cluster_role_binding_config(src *cluster.Cluster, resource *resour
 		// not a namespaced resource and hence no loop through all the namespaces and get the list of clusterrole bindings
 		crbl, err := src.GetClientset().RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			fmt.Printf("Could not read kubernetes Role Bindings using cluster client: %v\n", err)
+			if errors.IsNotFound(err) {
+				fmt.Printf("No kubernetes Cluster Role Bindings found: %v\n", err)
+				return
+			} else {
+				fmt.Printf("Could not read kubernetes Cluster Role Bindings using cluster client: %v\n", err)
 			os.Exit(1)
+		}
 		}
 
 		// append list of services in this namespace to global services list
@@ -704,8 +798,13 @@ func Generate_helm_charts(src *cluster.Cluster, resource *resource.Resources) {
 
 		secretList, err := src.GetClientset().CoreV1().Secrets(element.ObjectMeta.Name).List(context.TODO(), listOptions)
 		if err != nil {
+			if errors.IsNotFound(err) {
+				fmt.Printf("No kubernetes Secrets found: %v\n", err)
+				return
+			} else {
 			fmt.Printf("Could not read kubernetes Secrets using cluster client: %v\n", err)
 			os.Exit(1)
+		}
 		}
 
 		for _, secret := range secretList.Items {
